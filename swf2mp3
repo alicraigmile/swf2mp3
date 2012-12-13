@@ -4,8 +4,7 @@
 #
 # requires:
 #   SWF Tools <http://www.swftools.org/download.html>
-#   Saxon 9B XSLT parser (saxon9.jar needs to be on your $CLASSPATH)
-#   A modern Java VM
+#   xsltproc
 #
 # By Ali Craigmile <ali@craigmile.com>
 
@@ -32,7 +31,7 @@ if [[ ! -f 'find_sound_id.xsl'  ]]; then
 <xsl:stylesheet 
   xmlns:swf="http://macromedia/2003/swfx"
   xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
-  version="2">
+  version="1.0">
     <xsl:output method="text" omit-xml-declaration="yes" indent="no"/>
     <xsl:template match="/">
     <xsl:value-of select="swf:swf/swf:DefineSound[1]/@id"/>
@@ -40,10 +39,6 @@ if [[ ! -f 'find_sound_id.xsl'  ]]; then
 </xsl:stylesheet>
 EOT
 fi
-
-# Setup a default location of saxon9 jar if it's not supplied
-
-CLASSPATH="/Users/craiga01/workspace/saxonb9-1-0-8j/saxon9.jar:$CLASSPATH"
 
 # Do the work
 
@@ -53,7 +48,7 @@ BASE=`echo "$SWF" | cut -d'.' -f1`
 MP3="$BASE.mp3"
 XML="$BASE.xml"
 swfdump $SWF > $XML
-SOUND_ID=`java net.sf.saxon.Transform -xsl:find_sound_id.xsl -s:$XML`
+SOUND_ID=`xsltproc find_sound_id.xsl $XML`
 echo "extracting sound '$SOUND_ID' from '$SWF'"
 swfextract -s $SOUND_ID $SWF
 mv output.mp3 $MP3
