@@ -1,0 +1,64 @@
+#!/bin/sh
+
+# swf2mp3 - Extract the first sound from a SWF file as an MP3 file of the same name.
+#
+# requires:
+#   SWF Tools <http://www.swftools.org/download.html>
+#   Saxon 9B XSLT parser (saxon9.jar needs to be on your $CLASSPATH)
+#   A modern Java VM
+#
+# By Ali Craigmile <ali@craigmile.com>
+
+# Usage
+
+if [ $# -ne 1 ]; then
+  echo "Extract the first sound from a SWF file as an MP3 file of the same name."
+  echo "Usage:"
+  echo "  swf2mp3 filename.swf"
+  echo " "
+  exit 0;
+fi
+
+if [[ ! -f $@ ]]; then
+  echo "File not found - '$@'"
+  exit -1
+fi
+
+# Setup XSL Transform
+
+if [[ ! -f 'find_sound_id.xsl'  ]]; then
+  cat > find_sound_id.xsl << EOT;
+<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet 
+  xmlns:swf="http://macromedia/2003/swfx"
+  xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+  version="2">
+    <xsl:output method="text" omit-xml-declaration="yes" indent="no"/>
+    <xsl:template match="/">
+    <xsl:value-of select="swf:swf/swf:DefineSound[1]/@id"/>
+  </xsl:template>
+</xsl:stylesheet>
+EOT
+fi
+
+# Setup a default location of saxon9 jar if it's not supplied
+
+CLASSPATH="/Users/craiga01/workspace/saxonb9-1-0-8j/saxon9.jar:$CLASSPATH"
+
+# Do the work
+
+#SWF='sp101l61.swf'
+SWF="$@"
+BASE=`echo "$SWF" | cut -d'.' -f1`
+MP3="$BASE.mp3"
+XML="$BASE.xml"
+swfdump $SWF > $XML
+SOUND_ID=`java net.sf.saxon.Transform -xsl:find_sound_id.xsl -s:$XML`
+echo "extracting sound '$SOUND_ID' from '$SWF'"
+swfextract -s $SOUND_ID $SWF
+mv output.mp3 $MP3
+echo "saved '$MP3'"
+
+# Clean up
+
+rm $XML
